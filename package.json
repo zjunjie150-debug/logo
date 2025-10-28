@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "AI Logo Generator",
   "main": "api/generate.js",
-  "type": "module",
+  "type": "module", 
   "scripts": {
     "start": "vercel dev" 
   },

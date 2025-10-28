@@ -26,15 +26,15 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
             return;
         }
 
-        if (data.image_base64) {
-            // 千帆接口通常返回 Base64 编码的图片数据
-            resultDiv.innerHTML = `<img src="data:image/png;base64,${data.image_base64}" alt="Generated Logo" class="generated-img">`;
+        if (data.image_url) { // <--- 修正：检查 image_url
+            // 接收 API 返回的图片 URL 并显示
+            resultDiv.innerHTML = `<img src="${data.image_url}" alt="Generated Logo" class="generated-img">`;
         } else {
-            resultDiv.innerHTML = `<p style="color: red;">模型返回数据格式错误。</p>`;
+            resultDiv.innerHTML = '<p style="color: red;">生成失败：未收到图片数据。</p>';
         }
-        
+
     } catch (error) {
         console.error('Fetch error:', error);
-        resultDiv.innerHTML = `<p style="color: red;">网络请求失败，请检查服务器状态。</p>`;
+        resultDiv.innerHTML = '<p style="color: red;">网络请求失败，请检查服务器连接。</p>';
     }
 });

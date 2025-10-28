@@ -1,4 +1,4 @@
-// api/generate.js (模型名称最终修正版)
+// api/generate.js (最终确定版 - 解析 URL)
 
 import fetch from 'node-fetch'; 
 
@@ -34,10 +34,7 @@ export default async (req, res) => {
             },
             body: JSON.stringify({
                 prompt: prompt,
-                // ----------------------------------------------------
-                // !!! 关键修正点：模型名称改为小写，确保被 API 接受 !!!
-                // ----------------------------------------------------
-                model: "stable-diffusion-xl", // 确保使用 API 接受的 exact name
+                model: "stable-diffusion-xl", // 修正模型名称
                 size: "1024x1024", 
                 n: 1 
             }),
@@ -46,20 +43,18 @@ export default async (req, res) => {
         const apiData = await apiResponse.json();
 
         if (apiData.error) {
-            // 捕获 API 明确返回的错误信息（包括 invalid_model）
             return res.status(500).json({ error: `API 错误: ${apiData.error.message}. 错误代码: ${apiData.error.code}` });
         }
 
-        // 检查 result 字段和 data 数组是否存在
-        const imageResult = apiData?.result?.data?.[0]?.b64_image;
+        // 修正：改为解析返回的 'url' 字段
+        const imageURL = apiData?.data?.[0]?.url;
         
-        if (!imageResult) {
-             // 如果结构不完整，返回 API 完整响应进行调试
+        if (!imageURL) {
              return res.status(500).json({ error: `模型返回数据结构不完整或为空。完整API响应: ${JSON.stringify(apiData)}` });
         }
         
-        const image_base64 = imageResult;
-        res.status(200).json({ image_base64 });
+        // 返回 URL 给前端
+        res.status(200).json({ image_url: imageURL });
 
     } catch (error) {
         console.error('Server error:', error.message);
