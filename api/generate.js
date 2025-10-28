@@ -1,4 +1,4 @@
-// api/generate.js (简化版 - 直接使用 API Key 作为 Bearer Token)
+// api/generate.js (最终修正版 - 增强错误处理)
 
 import fetch from 'node-fetch'; 
 
@@ -25,15 +25,12 @@ export default async (req, res) => {
             return res.status(400).json({ error: 'Prompt 不能为空' });
         }
 
-        // 1. 调用千帆图像生成 API
-        // 注意：这里 URL 中不再需要 access_token=，而是通过 Header 鉴权
         const qianfanUrl = `https://qianfan.baidubce.com/v2/images/generations`;
         
         const apiResponse = await fetch(qianfanUrl, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                // !!! 关键：将您的 API Key 作为 Bearer Token 放入 Authorization Header !!!
                 'Authorization': `Bearer ${BEARER_TOKEN}` 
             },
             body: JSON.stringify({
@@ -44,14 +41,26 @@ export default async (req, res) => {
             }),
         });
         
-        // ... (后续的错误处理和返回逻辑保持不变)
         const apiData = await apiResponse.json();
 
+        // ----------------------------------------------------
+        // !!! 关键修正点：更严格的错误检查和数据访问 !!!
+        // ----------------------------------------------------
+
         if (apiData.error_code) {
+            // 捕获 API 明确返回的错误信息
             return res.status(500).json({ error: `API 错误: ${apiData.error_msg}` });
         }
 
-        const image_base64 = apiData.result.data[0].b64_image;
+        // 检查 result 字段和 data 数组是否存在
+        const imageResult = apiData?.result?.data?.[0]?.b64_image;
+        
+        if (!imageResult) {
+             // 如果结构不完整，返回 API 完整响应进行调试
+             return res.status(500).json({ error: `模型返回数据结构不完整或为空。完整API响应: ${JSON.stringify(apiData)}` });
+        }
+        
+        const image_base64 = imageResult;
         res.status(200).json({ image_base64 });
 
     } catch (error) {
