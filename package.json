@@ -1,0 +1,12 @@
+{
+  "name": "logo-generator",
+  "version": "1.0.0",
+  "description": "AI Logo Generator",
+  "main": "api/generate.js",
+  "scripts": {
+    "start": "vercel dev" 
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2" 
+  }
+}
