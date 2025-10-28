@@ -1,4 +1,4 @@
-// api/generate.js (最终修正版 - 增强错误处理)
+// api/generate.js (模型名称最终修正版)
 
 import fetch from 'node-fetch'; 
 
@@ -7,7 +7,6 @@ const BEARER_TOKEN = process.env.QIANFAN_API_KEY;
 
 // 导出函数，供 Vercel 调用
 export default async (req, res) => {
-    // 基础的设置和请求方法检查...
     res.setHeader('Access-Control-Allow-Origin', '*'); 
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Content-Type', 'application/json');
@@ -35,7 +34,10 @@ export default async (req, res) => {
             },
             body: JSON.stringify({
                 prompt: prompt,
-                model: "Stable-Diffusion-XL", 
+                // ----------------------------------------------------
+                // !!! 关键修正点：模型名称改为小写，确保被 API 接受 !!!
+                // ----------------------------------------------------
+                model: "stable-diffusion-xl", // 确保使用 API 接受的 exact name
                 size: "1024x1024", 
                 n: 1 
             }),
@@ -43,13 +45,9 @@ export default async (req, res) => {
         
         const apiData = await apiResponse.json();
 
-        // ----------------------------------------------------
-        // !!! 关键修正点：更严格的错误检查和数据访问 !!!
-        // ----------------------------------------------------
-
-        if (apiData.error_code) {
-            // 捕获 API 明确返回的错误信息
-            return res.status(500).json({ error: `API 错误: ${apiData.error_msg}` });
+        if (apiData.error) {
+            // 捕获 API 明确返回的错误信息（包括 invalid_model）
+            return res.status(500).json({ error: `API 错误: ${apiData.error.message}. 错误代码: ${apiData.error.code}` });
         }
 
         // 检查 result 字段和 data 数组是否存在
