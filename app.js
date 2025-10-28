@@ -1,17 +1,18 @@
 document.getElementById('generate-btn').addEventListener('click', async () => {
     const prompt = document.getElementById('logo-prompt').value;
     const resultDiv = document.getElementById('logo-result');
+    const generateBtn = document.getElementById('generate-btn'); 
     
     if (!prompt) {
         resultDiv.innerHTML = '<p style="color: red;">请输入 Logo 描述！</p>';
         return;
     }
 
+    // 禁用按钮并显示加载信息
+    generateBtn.disabled = true;
     resultDiv.innerHTML = '<p>正在努力生成中，请稍候...</p>';
     
     try {
-        // !!! 关键：向 Vercel 部署的鉴权代理发起请求 !!!
-        // Vercel 会自动将 /api/generate 路由到 api/generate.js
         const response = await fetch('/api/generate', { 
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -26,9 +27,9 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
             return;
         }
 
-        if (data.image_url) { // <--- 修正：检查 image_url
-            // 接收 API 返回的图片 URL 并显示
-            resultDiv.innerHTML = `<img src="${data.image_url}" alt="Generated Logo" class="generated-img">`;
+        if (data.image_base64) { 
+            // 接收 Base64 编码的图片数据并显示
+            resultDiv.innerHTML = `<img src="data:image/jpeg;base64,${data.image_base64}" alt="Generated Logo" class="generated-img">`;
         } else {
             resultDiv.innerHTML = '<p style="color: red;">生成失败：未收到图片数据。</p>';
         }
@@ -36,5 +37,8 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
     } catch (error) {
         console.error('Fetch error:', error);
         resultDiv.innerHTML = '<p style="color: red;">网络请求失败，请检查服务器连接。</p>';
+    } finally {
+        // 重新启用按钮
+        generateBtn.disabled = false;
     }
 });
