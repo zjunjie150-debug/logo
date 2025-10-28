@@ -1,7 +1,6 @@
-// api/generate.js (Hugging Face Logo 生成版本)
+// api/generate.js (最终确定版 - 修复 Buffer 兼容性，已移除 import { Buffer } from 'node:buffer';)
 
 import fetch from 'node-fetch'; 
-import { Buffer } from 'node:buffer'; // 引入 Buffer 用于处理图像数据
 
 // 密钥从 Vercel 的环境变量中获取
 const HF_ACCESS_TOKEN = process.env.HF_ACCESS_TOKEN; 
@@ -45,12 +44,11 @@ export default async (req, res) => {
             body: JSON.stringify({
                 inputs: prompt,
                 options: {
-                    wait_for_model: true // 如果模型正在加载，等待它完成
+                    wait_for_model: true 
                 }
             }),
         });
         
-        // 检查 API 是否返回错误（状态码非 200/202）
         if (!apiResponse.ok) {
             const errorText = await apiResponse.text();
             return res.status(apiResponse.status).json({ error: `Hugging Face API 错误: ${errorText}` });
@@ -58,7 +56,7 @@ export default async (req, res) => {
 
         // 2. 将图片 Blob 转换为 Base64 格式
         const imageArrayBuffer = await apiResponse.arrayBuffer();
-        const base64Image = Buffer.from(imageArrayBuffer).toString('base64');
+        const base64Image = Buffer.from(imageArrayBuffer).toString('base64'); 
 
         // 返回 Base64 数据给前端
         res.status(200).json({ image_base64: base64Image });
