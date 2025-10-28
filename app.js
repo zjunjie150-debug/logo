@@ -42,3 +42,10 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
         generateBtn.disabled = false;
     }
 });
+// ... (这是 app.js 文件的最后几行)
+    } finally {
+        // 重新启用按钮
+        generateBtn.disabled = false;
+    }
+});
+// 最终修正：强制 Vercel 重新部署，解决 invalid_iam_token 错误
