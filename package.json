@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "AI Logo Generator",
   "main": "api/generate.js",
-  "type": "module",  <-- 【必须添加】解决 ERR_REQUIRE_ESM 错误
+  "type": "module",
   "scripts": {
     "start": "vercel dev" 
   },
