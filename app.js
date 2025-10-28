@@ -1,51 +1,68 @@
-document.getElementById('generate-btn').addEventListener('click', async () => {
-    const prompt = document.getElementById('logo-prompt').value;
-    const resultDiv = document.getElementById('logo-result');
-    const generateBtn = document.getElementById('generate-btn'); 
-    
-    if (!prompt) {
-        resultDiv.innerHTML = '<p style="color: red;">请输入 Logo 描述！</p>';
-        return;
+// api/generate.js (最终确定版 - 修复 Buffer 兼容性，已移除 import { Buffer } from 'node:buffer';)
+
+import fetch from 'node-fetch'; 
+
+// 密钥从 Vercel 的环境变量中获取
+const HF_ACCESS_TOKEN = process.env.HF_ACCESS_TOKEN; 
+
+// 采用更适合 Logo/简约风格的 segmind/tiny-sd 模型
+const HUGGINGFACE_MODEL = "segmind/tiny-sd"; 
+
+// 导出函数，供 Vercel 调用
+export default async (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*'); 
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Content-Type', 'application/json');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    // 禁用按钮并显示加载信息
-    generateBtn.disabled = true;
-    resultDiv.innerHTML = '<p>正在努力生成中，请稍候...</p>';
-    
+    if (!HF_ACCESS_TOKEN) {
+        return res.status(500).json({ error: '服务器配置错误: 缺少 HF_ACCESS_TOKEN 环境变量。' });
+    }
+
     try {
-        const response = await fetch('/api/generate', { 
+        const { prompt } = req.body;
+        if (!prompt) {
+            return res.status(400).json({ error: 'Prompt 不能为空' });
+        }
+
+        // 1. 调用 Hugging Face Inference API
+        const hfUrl = `https://api-inference.huggingface.co/models/${HUGGINGFACE_MODEL}`;
+        
+        const apiResponse = await fetch(hfUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: prompt })
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${HF_ACCESS_TOKEN}` 
+            },
+            // Hugging Face API 的标准请求体
+            body: JSON.stringify({
+                inputs: prompt,
+                options: {
+                    wait_for_model: true 
+                }
+            }),
         });
-
-        const data = await response.json();
-
-        // 检查是否成功返回了图片数据
-        if (data.error) {
-            resultDiv.innerHTML = `<p style="color: red;">生成失败: ${data.error}</p>`;
-            return;
+        
+        if (!apiResponse.ok) {
+            const errorText = await apiResponse.text();
+            return res.status(apiResponse.status).json({ error: `Hugging Face API 错误: ${errorText}` });
         }
 
-        if (data.image_base64) { 
-            // 接收 Base64 编码的图片数据并显示
-            resultDiv.innerHTML = `<img src="data:image/jpeg;base64,${data.image_base64}" alt="Generated Logo" class="generated-img">`;
-        } else {
-            resultDiv.innerHTML = '<p style="color: red;">生成失败：未收到图片数据。</p>';
-        }
+        // 2. 将图片 Blob 转换为 Base64 格式
+        const imageArrayBuffer = await apiResponse.arrayBuffer();
+        const base64Image = Buffer.from(imageArrayBuffer).toString('base64'); 
+
+        // 返回 Base64 数据给前端
+        res.status(200).json({ image_base64: base64Image });
 
     } catch (error) {
-        console.error('Fetch error:', error);
-        resultDiv.innerHTML = '<p style="color: red;">网络请求失败，请检查服务器连接。</p>';
-    } finally {
-        // 重新启用按钮
-        generateBtn.disabled = false;
+        console.error('Server error:', error.message);
+        res.status(500).json({ error: `服务器内部错误: ${error.message}` });
     }
-});
-// ... (这是 app.js 文件的最后几行)
-    } finally {
-        // 重新启用按钮
-        generateBtn.disabled = false;
-    }
-});
-// 最终修正：强制 Vercel 重新部署，解决 invalid_iam_token 错误
+};
